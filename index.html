@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#4F6DF5">
+<title>瞬間英作文トレーナー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#4F6DF5; --blue-d:#3f57d6;
+    --done:#22B573; --failed:#F2935C; --uncheck:#CFD3DD;
+    --ink:#2A2F3A; --sub:#929AAC; --line:#EEF0F5; --bg:#F4F6FB;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:var(--blue);
+    font-family:'Zen Maru Gothic',-apple-system,BlinkMacSystemFont,sans-serif;
+    color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* スマホ実機では全画面、PCでは端末風の枠 */
+  #app{
+    width:100%;max-width:430px;height:100vh;max-height:100vh;
+    background:var(--bg);display:flex;flex-direction:column;overflow:hidden;
+    position:relative;
+  }
+  @media(min-width:480px){
+    #app{height:92vh;border-radius:26px;box-shadow:0 24px 60px rgba(0,0,0,.28);}
+  }
+  .screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 18px 24px;}
+  .screen::-webkit-scrollbar{display:none;}
+  h1.brand{font-weight:900;font-size:24px;letter-spacing:-.5px;line-height:1.2;}
+  h1.brand span{color:var(--blue);}
+  .muted{color:var(--sub);}
+  .card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(60,70,120,.05);}
+  .btn{all:unset;cursor:pointer;display:block;text-align:center;border-radius:12px;
+    font-weight:700;padding:14px;font-size:15px;transition:transform .05s;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink);}
+  .btn-done{background:var(--done);color:#fff;}
+  .btn-failed{background:var(--failed);color:#fff;}
+  input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;background:#fff;outline:none;}
+  input:focus,select,textarea:focus{border-color:var(--blue);}
+  label.fld{display:block;font-size:12.5px;font-weight:700;color:var(--sub);margin:14px 0 6px;}
+  /* bottom nav */
+  nav{display:flex;border-top:1px solid var(--line);background:rgba(255,255,255,.97);
+    backdrop-filter:blur(8px);padding:7px 6px 9px;flex-shrink:0;}
+  nav button{all:unset;cursor:pointer;flex:1;display:flex;flex-direction:column;
+    align-items:center;gap:3px;padding:5px 0;color:var(--sub);}
+  nav button.active{color:var(--blue);}
+  nav span{font-size:10.5px;font-weight:700;}
+  /* progress */
+  .bar{height:10px;border-radius:99px;background:#E7EAF3;overflow:hidden;}
+  .bar>i{display:block;height:100%;background:var(--blue);border-radius:99px;transition:width .4s;}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+    padding:5px 10px;border-radius:99px;}
+  .chip{all:unset;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:99px;
+    border:1.5px solid var(--line);color:var(--sub);background:#fff;}
+  .chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .flash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:90px;pointer-events:none;opacity:0;}
+  .flash.show{animation:pop 1s ease;}
+  @keyframes pop{0%{opacity:0;transform:scale(.4);}30%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.1);}}
+  .toast{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:#2A2F3A;color:#fff;
+    font-size:13px;font-weight:700;padding:10px 18px;border-radius:99px;opacity:0;transition:opacity .3s;z-index:5;}
+  .toast.show{opacity:.95;}
+  .row{display:flex;gap:8px;}
+  .listitem{background:#fff;border-radius:14px;padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 4px rgba(60,70,120,.05);}
+  .dot{width:9px;height:9px;border-radius:99px;flex-shrink:0;}
+  details summary{list-style:none;cursor:pointer;}
+  details summary::-webkit-details-marker{display:none;}
+  .cat-head{font-weight:700;font-size:12.5px;color:var(--blue);margin:18px 2px 8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="screen" id="screen"></div>
+  <div class="flash" id="flash"></div>
+  <div class="toast" id="toast"></div>
+  <nav id="nav"></nav>
+</div>
+
+<!-- DATA:START -->
+<script id="phrase-data" type="application/json">
+[
+{
+"id": "x82cf580e",
+"category": "MTGでの頻出フレーズ",
+"phrase": "I'd like to hear your thoughts on...",
+"scene": "相手に意見・コメントを求める",
+"en": "I'd like to hear your thoughts on whether this hypothesis is on the right track.",
+"jp": "この仮説が正しい方向かどうか、ご意見を伺えればと思います。"
+},
+{
+"id": "xa67eb201",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Could you comment on...?",
+"scene": "特定トピックへのコメント依頼",
+"en": "Could you comment on the feasibility of this implementation?",
+"jp": "この実装の実現可能性について、コメントいただけますか？"
+},
+{
+"id": "xe6a41e40",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Is that understanding correct?",
+"scene": "自分の理解の確認",
+"en": "So the wearable could also be used as an add-on for lupus nephritis patients — is that understanding correct?",
+"jp": "ループス腎炎の患者さんにもアドオンとしてウェアラブルの可能性がある、という理解で大丈夫でしょうか？"
+},
+{
+"id": "xa6c5d1ba",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Moving on to the next topic...",
+"scene": "話題の転換・次の議題への遷移",
+"en": "Moving on to the next topic, I'd like to discuss the implementation flow.",
+"jp": "続いて、実装フローについて議論させてください。"
+},
+{
+"id": "xbddcee06",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Thank you for your input.",
+"scene": "相手のコメントへの感謝・区切り",
+"en": "Thank you for your input. That's very helpful.",
+"jp": "ご意見ありがとうございます。大変参考になります。"
+},
+{
+"id": "x7fe507be",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Let me recap what we've discussed.",
+"scene": "議論内容の要約・まとめ",
+"en": "Let me recap — you're saying that trend data is more useful than a single snapshot.",
+"jp": "まとめると、トレンドデータの方が一時点のスナップショットより有用だというご意見ですね。"
+},
+{
+"id": "xc966d80b",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Does anyone else have any comments?",
+"scene": "他の参加者への発言促し",
+"en": "Does anyone else have any comments on this point?",
+"jp": "この点について、他にコメントはございますか？"
+},
+{
+"id": "xedf8a746",
+"category": "MTGでの頻出フレーズ",
+"phrase": "If there are no further questions, let's wrap up.",
+"scene": "MTG終了の切り出し",
+"en": "If there are no further questions, let's wrap up. Thank you very much for today.",
+"jp": "他にご質問がなければ、終了とさせていただきます。本日はありがとうございました。"
+},
+{
+"id": "x1467dec0",
+"category": "MTGでの頻出フレーズ",
+"phrase": "That's something we're still exploring.",
+"scene": "検討中であることを伝える",
+"en": "That's something we're still exploring — we haven't finalized it yet.",
+"jp": "そこはまだ検討中でして、確定しておりません。"
+},
+{
+"id": "xde341747",
+"category": "MTGでの頻出フレーズ",
+"phrase": "I see. That makes sense.",
+"scene": "相手の発言を受け止める相槌",
+"en": "I see. That makes sense. So the key concern is the patient's self-judgment.",
+"jp": "なるほど、確かにそうですね。患者さんの自己判断が懸念点ということですね。"
+},
+{
+"id": "xb8f53459",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "Let me start by explaining the background.",
+"scene": "プレゼン冒頭での背景説明",
+"en": "Let me start by explaining the background of today's discussion.",
+"jp": "まず初めに、今回のヒアリングの背景をご説明させていただきます。"
+},
+{
+"id": "x73e80047",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "Our hypothesis is that...",
+"scene": "仮説の提示",
+"en": "Our hypothesis is that patients with low disease activity have the strongest unmet need for steroid tapering.",
+"jp": "我々の仮説では、低疾患活動性の患者さんがステロイド減薬において最もニーズが強いと考えています。"
+},
+{
+"id": "x517628d4",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "We have identified three potential patterns.",
+"scene": "複数の選択肢・パターンの提示",
+"en": "We have identified three potential patterns for displaying the risk indicator.",
+"jp": "リスク指標の表示について、3つのパターンを候補として考えています。"
+},
+{
+"id": "x4ebe56e7",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "Pattern 1 is..., while Pattern 2 is...",
+"scene": "パターンごとの説明・比較",
+"en": "Pattern 1 is a flare probability score, while Pattern 2 is a granular disease activity sub-score.",
+"jp": "パターン1はフレア発生確率、パターン2は疾患活動性の細分化スコアです。"
+},
+{
+"id": "x49acea73",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "From a clinical perspective, which approach would be more practical?",
+"scene": "臨床的観点での実用性を問う",
+"en": "From a clinical perspective, which approach would be more practical for routine use?",
+"jp": "臨床的な観点から、日常診療でどちらのアプローチがより実用的でしょうか？"
+},
+{
+"id": "xd103d139",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "To take it one step further...",
+"scene": "より踏み込んだ提案への導入",
+"en": "To take it one step further, we're considering adding treatment recommendations to the risk display.",
+"jp": "さらに一歩踏み込んで、リスク表示に治療推奨を追加することも検討しています。"
+},
+{
+"id": "xbe5ea254",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "We envision the workflow as follows:",
+"scene": "想定フロー・運用の説明",
+"en": "We envision the workflow as follows: the patient wears the device between visits, and the physician reviews the results at the next appointment.",
+"jp": "想定するワークフローは以下の通りです：患者さんがライン間にデバイスを装着し、次回来院時に医師が結果を確認します。"
+},
+{
+"id": "xa3e6a15e",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "Based on our previous interviews...",
+"scene": "過去のヒアリング結果の引用",
+"en": "Based on our previous interviews, we believe that existing biomarkers are insufficient for predicting relapse in low disease activity.",
+"jp": "前回のヒアリングに基づき、既存のバイオマーカーでは低疾患活動性での再燃予測が困難であると考えています。"
+},
+{
+"id": "xd639c0a2",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "There is existing research suggesting that...",
+"scene": "先行研究・エビデンスの引用",
+"en": "There is existing research in IBD suggesting that heart rate variability can predict flares 7 weeks in advance.",
+"jp": "IBD領域の先行研究では、心拍変動により7週間前にフレアを予測できることが示唆されています。"
+},
+{
+"id": "x5a4c7b00",
+"category": "プレゼンでの説明がしやすくなるフレーズ",
+"phrase": "If we were to rank these options, which would you prioritize?",
+"scene": "選択肢の優先順位付けを依頼",
+"en": "If we were to rank these three display options, which would you prioritize?",
+"jp": "これら3つの表示オプションに順位をつけるとしたら、どれを優先されますか？"
+},
+{
+"id": "x3c0e1b6d",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "What are the key pain points for [target users]?",
+"scene": "対象ユーザーの課題・ペインポイントを聞き出す",
+"en": "What are the key pain points for physicians managing low disease activity patients?",
+"jp": "低疾患活動性の患者さんを管理する医師にとって、主な課題は何でしょうか？"
+},
+{
+"id": "xab7383b1",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "Does this hypothesis align with your experience?",
+"scene": "仮説の妥当性を実務者に検証する",
+"en": "Does this hypothesis align with your clinical experience — that existing indicators are insufficient for predicting relapse?",
+"jp": "既存の指標では再燃予測が困難という仮説は、先生のご経験と一致しますか？"
+},
+{
+"id": "x70a17514",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "Would this be a must-have or a nice-to-have?",
+"scene": "機能の必須度・優先度を確認する",
+"en": "Would the treatment recommendation feature be a must-have or a nice-to-have for adoption?",
+"jp": "治療推奨の機能は、普及にとって必須でしょうか、それともあったら良い程度でしょうか？"
+},
+{
+"id": "x8cf6fd4a",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "What type of indicator would be most actionable?",
+"scene": "実際の意思決定に役立つ指標を探る",
+"en": "What type of indicator would be most actionable for making steroid tapering decisions?",
+"jp": "ステロイド減薬の判断において、最も実用的な指標はどのようなものでしょうか？"
+},
+{
+"id": "xfb27f53f",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "What would be the acceptable time commitment?",
+"scene": "許容される所要時間・負荷を確認する",
+"en": "What would be the acceptable time commitment per patient for reviewing this tool?",
+"jp": "このツールの確認にかけられる1患者あたりの許容時間はどの程度でしょうか？"
+},
+{
+"id": "x3b3fef5d",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "Is [feature X] necessary for widespread adoption?",
+"scene": "普及に必要な条件を確認する",
+"en": "Is insurance reimbursement necessary for widespread adoption in university hospitals?",
+"jp": "大学病院での普及を考えた場合、保険償還は必須となりますか？"
+},
+{
+"id": "xb1305de0",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "What are the potential barriers to implementation?",
+"scene": "実装上のハードル・障壁を洗い出す",
+"en": "What are the potential barriers to implementing this in a typical rheumatology outpatient setting?",
+"jp": "一般的な膠原病内科の外来で実装する際に、想定されるハードルはありますか？"
+},
+{
+"id": "x74dc1fad",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "At what granularity would you want to see the data?",
+"scene": "データの粒度・頻度の希望を確認する",
+"en": "At what granularity would you want to see the trend — daily, weekly, or monthly?",
+"jp": "トレンドはどの粒度で見たいですか？ 日単位、週単位、月単位のどれでしょうか？"
+},
+{
+"id": "xaee8f6a7",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "Would you also want this information to be shared with patients?",
+"scene": "患者への情報開示の要否を確認する",
+"en": "Would you also want this risk score to be shared with patients, or only visible to physicians?",
+"jp": "このリスクスコアは患者さんにも共有したいですか、それとも医師のみ閲覧でしょうか？"
+},
+{
+"id": "x742c6d69",
+"category": "ニーズヒアリング観点での質問フレーズ",
+"phrase": "Compared to [A] and [B], which resonates more with your practice?",
+"scene": "複数案の中から実務適合性を問う",
+"en": "Compared to a flare probability score and a daily LLDAS assessment, which resonates more with your daily practice?",
+"jp": "フレア発生確率と日次LLDAS判定を比べた場合、日常診療にはどちらがフィットしますか？"
+},
+{
+"id": "x7023e31f",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Let me walk you through...",
+"scene": "MTG冒頭で資料の説明を始める際の導入表現",
+"en": "Let me walk you through the materials we shared in advance, and then open it up for discussion.",
+"jp": "事前共有した資料について口頭でご説明した後、ディスカッションに移りたいと思います。"
+},
+{
+"id": "x7ce956ab",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Can everyone see my screen?",
+"scene": "画面共有が正しく表示されているか確認",
+"en": "Can everyone see my screen? Let me know if there are any issues.",
+"jp": "画面、見えてますかね。問題あればお知らせください。"
+},
+{
+"id": "x8268c50d",
+"category": "MTGでの頻出フレーズ",
+"phrase": "I'd like to shift gears and talk about...",
+"scene": "セクション間の切り替え・新トピックへの導入",
+"en": "I'd like to shift gears and talk about the consultation points we prepared.",
+"jp": "ここからはご相談事項について、お話しさせていただきます。"
+},
+{
+"id": "x47f12412",
+"category": "MTGでの頻出フレーズ",
+"phrase": "That's all from my side on this topic.",
+"scene": "一区切りの説明を終える合図",
+"en": "That's all from my side on the progress update and discussion points.",
+"jp": "一旦、進捗とご相談ポイントは以上となります。"
+},
+{
+"id": "x96cb1ff4",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Please feel free to jump in with any questions.",
+"scene": "質疑応答を促す（カジュアル寄り）",
+"en": "Please feel free to jump in with any questions as we go.",
+"jp": "途中でも何かご質問がありましたら、お気軽にどうぞ。"
+},
+{
+"id": "x2e033229",
+"category": "MTGでの頻出フレーズ",
+"phrase": "As for the next steps...",
+"scene": "MTG終盤でのアクションアイテム整理",
+"en": "As for the next steps, we'll finalize our data collection plan and share the RFP once it's ready.",
+"jp": "今後のアクションとしては、データ収集方法を確定し、決まり次第RFPをご提示します。"
+},
+{
+"id": "x4b84864c",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Would it be possible to review this on your end?",
+"scene": "社内持ち帰り検討の丁寧な依頼",
+"en": "Would it be possible to review this on your end and get back to us with a rough estimate?",
+"jp": "御社内でご検討いただき、概算感をご共有いただくことは可能でしょうか？"
+},
+{
+"id": "xefe28968",
+"category": "MTGでの頻出フレーズ",
+"phrase": "This has been very insightful — thank you.",
+"scene": "MTGクロージングで相手への敬意を込めた感謝",
+"en": "This has been very insightful — thank you all for your time today.",
+"jp": "大変勉強になりました。本日はお時間いただきありがとうございました。"
+},
+{
+"id": "x7ba67bd0",
+"category": "MTGでの頻出フレーズ",
+"phrase": "I'd like to give you a brief overview of...",
+"scene": "プロジェクト概要の紹介導入",
+"en": "I'd like to give you a brief overview of the project scope and the solution concept.",
+"jp": "プロジェクトの範囲とソリューションのコンセプトについて、簡単にご紹介できればと思います。"
+},
+{
+"id": "x4f88a56b",
+"category": "MTGでの頻出フレーズ",
+"phrase": "The core issue we're trying to solve is...",
+"scene": "解決すべき中心的課題の提示",
+"en": "The core issue we're trying to solve is the risk of missed IRF and SRF lesions in routine OCT assessments.",
+"jp": "我々が解決しようとしている中心的な課題は、ルーチンのOCT評価におけるIRF・SRFの見逃しリスクです。"
+},
+{
+"id": "xabc81140",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Our proposed solution is to...",
+"scene": "ソリューション・アプローチの説明",
+"en": "Our proposed solution is to use AI-generated heatmaps to flag potential lesion areas for the physician.",
+"jp": "提案するソリューションは、AIによるヒートマップで病変の可能性がある部位を医師に提示することです。"
+},
+{
+"id": "x02e9c3c4",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Where we currently stand is...",
+"scene": "現在の検討状況・進捗の共有",
+"en": "Where we currently stand is that we're evaluating the optimal algorithm between segmentation and bounding box.",
+"jp": "現在の検討状況としては、セグメンテーションとバウンディングボックスの間で最適なアルゴリズムを評価中です。"
+},
+{
+"id": "x048ececb",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're weighing the trade-offs between...",
+"scene": "複数手法の比較・トレードオフ説明",
+"en": "We're weighing the trade-offs between annotation cost and diagnostic accuracy across three algorithm options.",
+"jp": "3つのアルゴリズム候補について、アノテーションコストと診断精度のトレードオフを比較検討中です。"
+},
+{
+"id": "xc62b29ca",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Ideally, we would go with... however...",
+"scene": "理想と現実の制約を対比して説明",
+"en": "Ideally, we would go with segmentation for higher precision; however, the annotation burden is a major concern.",
+"jp": "精度面ではセグメンテーションが理想ですが、アノテーション負荷が大きな懸念事項です。"
+},
+{
+"id": "x245d424d",
+"category": "MTGでの頻出フレーズ",
+"phrase": "That's an area we still need to validate through PoC.",
+"scene": "今後のPoCで検証が必要な未確定事項",
+"en": "Whether AI can handle edge cases with deformed retinal structures — that's an area we still need to validate through PoC.",
+"jp": "網膜構造が変形したレアケースにAIが対応できるかは、今後のPoCで検証する必要があります。"
+},
+{
+"id": "xffc9568a",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Since our last meeting, we've pivoted to...",
+"scene": "前回MTGからの方針転換の説明",
+"en": "Since our last meeting, we've pivoted to a domestic from-scratch development approach rather than licensing an overseas solution.",
+"jp": "前回のミーティング以降、海外ソリューションのライセンスから国内でのスクラッチ開発へ方針を転換しました。"
+},
+{
+"id": "xf5dedda5",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We'd be grateful for any guidance on...",
+"scene": "専門家にガイダンス・助言を求める",
+"en": "We'd be grateful for any guidance on which annotation method best balances cost and performance.",
+"jp": "コストとパフォーマンスのバランスが最も良いアノテーション手法について、ご助言いただけると幸いです。"
+},
+{
+"id": "xc982f2cf",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We'd welcome your frank assessment of...",
+"scene": "率直な評価・判断を求める",
+"en": "We'd welcome your frank assessment of whether this reimbursement pathway is realistic.",
+"jp": "この保険経路が現実的かどうか、率直なご評価をいただければ幸いです。"
+},
+{
+"id": "xeb22fa15",
+"category": "MTGでの頻出フレーズ",
+"phrase": "If you've encountered a similar case, we'd love to learn from your experience.",
+"scene": "過去の類似経験からの知見を求める",
+"en": "If you've encountered a similar case in radiology AI reimbursement, we'd love to learn from your experience.",
+"jp": "放射線科AIの保険収載で類似のケースをご経験されていたら、ぜひお聞かせください。"
+},
+{
+"id": "x74e5d45c",
+"category": "MTGでの頻出フレーズ",
+"phrase": "What's your honest assessment of the likelihood of...?",
+"scene": "実現可能性を率直に問う",
+"en": "What's your honest assessment of the likelihood of establishing a new ophthalmic AI reimbursement category?",
+"jp": "眼科AI向けの新たな保険区分を新設できる可能性について、率直にどうお考えですか？"
+},
+{
+"id": "x62319d8a",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're trying to get a rough sense of...",
+"scene": "概算・大まかな感覚を掴みたい際",
+"en": "We're trying to get a rough sense of how annotation effort differs across segmentation, bounding box, and keypoint methods.",
+"jp": "セグメンテーション・バウンディングボックス・キーポイントの各手法でアノテーション工数がどう異なるか、大まかな感覚を掴みたいです。"
+},
+{
+"id": "x4edc7619",
+"category": "MTGでの頻出フレーズ",
+"phrase": "How much of a difference would there be in terms of...?",
+"scene": "手法間の定量的な差異を問う",
+"en": "How much of a difference would there be in terms of labor hours between keypoint annotation and full segmentation?",
+"jp": "キーポイントアノテーションとフルセグメンテーションでは、作業時間にどの程度の差がありますか？"
+},
+{
+"id": "xc8dc0b2a",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Could you walk us through the typical process for...?",
+"scene": "手続き・プロセスの詳細を教えてもらう",
+"en": "Could you walk us through the typical process for getting a new technology fee approved by MHLW?",
+"jp": "新しい技術料を厚労省に承認してもらう一般的なプロセスを教えていただけますか？"
+},
+{
+"id": "x846f1157",
+"category": "MTGでの頻出フレーズ",
+"phrase": "So in other words, would it be fair to say that...?",
+"scene": "理解の確認・言い換えによるすり合わせ",
+"en": "So in other words, would it be fair to say that a comprehensive framework is more feasible than product-level reimbursement?",
+"jp": "つまり、プロダクト単独での保険収載よりも包括的な枠組みの方が現実的と言えるでしょうか？"
+},
+{
+"id": "x3124b3e3",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're currently defining the functional requirements.",
+"scene": "機能要件を策定中であることを伝える",
+"en": "We're currently defining the functional requirements for the core AI module.",
+"jp": "現在、AIモジュールのコアとなる機能要件を定義しているところです。"
+},
+{
+"id": "x002945f2",
+"category": "MTGでの頻出フレーズ",
+"phrase": "The intended use of this product is to...",
+"scene": "製品の使用目的・クレームを説明する",
+"en": "The intended use of this product is to assist physicians in detecting lesions that may be overlooked.",
+"jp": "本製品の使用目的は、見落とされる可能性のある病変の検出を医師が行うことを支援することです。"
+},
+{
+"id": "xe4017e29",
+"category": "MTGでの頻出フレーズ",
+"phrase": "The input will be... and the output will be...",
+"scene": "システムのI/O仕様を説明する",
+"en": "The input will be serial OCT scan images, and the output will be a heatmap highlighting suspected lesion areas.",
+"jp": "インプットはOCT連続画像で、アウトプットは病変が疑われる部位をハイライトしたヒートマップです。"
+},
+{
+"id": "xf4a0ef75",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We need to define the acceptance criteria for...",
+"scene": "受入基準・合否基準を定める際",
+"en": "We need to define the acceptance criteria for the AI's detection sensitivity and specificity.",
+"jp": "AIの検出感度と特異度について、受入基準を定める必要があります。"
+},
+{
+"id": "x56c18a7c",
+"category": "MTGでの頻出フレーズ",
+"phrase": "What are the minimum performance benchmarks?",
+"scene": "最低限のパフォーマンス基準を確認する",
+"en": "What are the minimum performance benchmarks the algorithm needs to meet for regulatory submission?",
+"jp": "薬事申請に必要なアルゴリズムの最低限のパフォーマンス基準は何ですか？"
+},
+{
+"id": "x2c97abbb",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We also need to account for non-functional requirements.",
+"scene": "非機能要件（速度・セキュリティ等）への言及",
+"en": "We also need to account for non-functional requirements such as processing speed and data security.",
+"jp": "処理速度やデータセキュリティなどの非機能要件も考慮する必要があります。"
+},
+{
+"id": "x3c02fced",
+"category": "MTGでの頻出フレーズ",
+"phrase": "The key constraint here is...",
+"scene": "制約条件を明示する",
+"en": "The key constraint here is that the entire assessment needs to be completed within five minutes per patient.",
+"jp": "ここでの主要な制約条件は、1患者あたり5分以内に評価を完了する必要があるということです。"
+},
+{
+"id": "x394b62eb",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're preparing an RFP that will include these specifications.",
+"scene": "RFPの準備状況を伝える",
+"en": "We're preparing an RFP that will include these specifications along with performance and interface requirements.",
+"jp": "これらの仕様に加え、パフォーマンスとインターフェース要件を含むRFPを準備中です。"
+},
+{
+"id": "x2660fdd9",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're considering two deployment options: cloud-based and on-premise.",
+"scene": "クラウドとオンプレの2つの実装方式を検討中",
+"en": "We're considering two deployment options: cloud-based and on-premise, given the current IT infrastructure in ophthalmology clinics.",
+"jp": "眼科クリニックのIT基盤の現状を踏まえ、クラウドとオンプレミスの2つの実装方式を検討しています。"
+},
+{
+"id": "x3ae2da5f",
+"category": "MTGでの頻出フレーズ",
+"phrase": "The system needs to be compatible with...",
+"scene": "他システム・機器との互換性要件",
+"en": "The system needs to be compatible with major OCT devices from Topcon, Nidek, Canon, and Heidelberg.",
+"jp": "本システムはトプコン、ニデック、キャノン、ハイデルベルグの主要OCT機器と互換性を持つ必要があります。"
+},
+{
+"id": "x8bde6dc4",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Most devices support DICOM export, except for...",
+"scene": "データ規格の対応状況を説明する",
+"en": "Most devices support DICOM export, except for Nidek, which requires a separate conversion step.",
+"jp": "ニデックを除き、ほとんどの機器はDICOM出力に対応しています。ニデックは別途変換が必要です。"
+},
+{
+"id": "xed20089d",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're exploring integration with the existing viewer.",
+"scene": "既存ビューアーとの連携を検討中",
+"en": "We're exploring integration with the existing OCT viewer rather than building a standalone application.",
+"jp": "スタンドアロンのアプリケーションを構築するのではなく、既存のOCTビューアーとの連携を検討しています。"
+},
+{
+"id": "x7b3d483d",
+"category": "MTGでの頻出フレーズ",
+"phrase": "One approach is to deploy it on a general-purpose PC.",
+"scene": "汎用PCへの実装アプローチ",
+"en": "One approach is to deploy it on a general-purpose PC that accesses images from a shared folder within the hospital network.",
+"jp": "一つのアプローチとして、院内ネットワークの共有フォルダから画像にアクセスする汎用PCに実装することを考えています。"
+},
+{
+"id": "x3489a487",
+"category": "MTGでの頻出フレーズ",
+"phrase": "The other option involves partnering with the device manufacturer.",
+"scene": "検査装置メーカーとの連携オプション",
+"en": "The other option involves partnering with the device manufacturer to integrate directly with their software.",
+"jp": "もう一つの選択肢は、検査装置メーカーと連携し、そのソフトウェアに直接統合することです。"
+},
+{
+"id": "xb8276988",
+"category": "MTGでの頻出フレーズ",
+"phrase": "A major adoption barrier is that cloud PACS isn't yet widespread in this field.",
+"scene": "普及上のインフラ課題を指摘する",
+"en": "A major adoption barrier is that cloud PACS isn't yet widespread in ophthalmology, unlike radiology.",
+"jp": "放射線科とは異なり、眼科ではクラウドPACSがまだ普及していないことが、大きな導入障壁です。"
+},
+{
+"id": "x71d99cbe",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We need to define the data flow from image capture to AI output.",
+"scene": "データフロー全体の設計について",
+"en": "We need to define the data flow from image capture on the OCT device through to the AI-generated report output.",
+"jp": "OCT装置での画像取得からAI生成レポート出力までのデータフローを定義する必要があります。"
+},
+{
+"id": "x94e4d787",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're evaluating three annotation approaches: segmentation, bounding box, and keypoint.",
+"scene": "3つのアノテーション手法の比較検討",
+"en": "We're evaluating three annotation approaches — segmentation, bounding box, and keypoint — to determine the best fit for our use case.",
+"jp": "セグメンテーション、バウンディングボックス、キーポイントの3つのアノテーション手法を、ユースケースへの適合性の観点から評価しています。"
+},
+{
+"id": "x68f07ca9",
+"category": "MTGでの頻出フレーズ",
+"phrase": "Segmentation provides higher accuracy, but at a significantly higher annotation cost.",
+"scene": "セグメンテーションの精度とコストのトレードオフ",
+"en": "Segmentation provides higher accuracy, but at a significantly higher annotation cost due to the pixel-level labeling required.",
+"jp": "セグメンテーションは精度が高い一方、ピクセルレベルのラベリングが必要なため、アノテーションコストが大幅に高くなります。"
+},
+{
+"id": "x27ccdf3a",
+"category": "MTGでの頻出フレーズ",
+"phrase": "For our use case, binary detection may be sufficient.",
+"scene": "有無判定で十分かもしれない場面の説明",
+"en": "For our use case, binary detection — whether IRF or SRF is present or absent — may be sufficient based on current clinical guidelines.",
+"jp": "我々のユースケースでは、現行のガイドラインに基づき、IRF・SRFの有無判定（バイナリ検出）で十分かもしれません。"
+},
+{
+"id": "xae5b3fbd",
+"category": "MTGでの頻出フレーズ",
+"phrase": "If we go with segmentation, the evaluation metric would be the Dice coefficient.",
+"scene": "セグメンテーション選択時の評価指標の説明",
+"en": "If we go with segmentation, the evaluation metric would be the Dice coefficient for area overlap between AI output and ground truth.",
+"jp": "セグメンテーションを採用する場合、評価指標はAI出力とグラウンドトゥルース間のDice係数（面積一致度）になります。"
+},
+{
+"id": "x272d0d9c",
+"category": "MTGでの頻出フレーズ",
+"phrase": "How many annotated training samples would be needed for each approach?",
+"scene": "各手法に必要な学習データ数を問う",
+"en": "How many annotated training samples would be needed for each approach to achieve clinically acceptable performance?",
+"jp": "臨床的に許容されるパフォーマンスを達成するために、各手法で何件のアノテーション済み学習データが必要ですか？"
+},
+{
+"id": "x5538f820",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We need to ensure the model generalizes across different device manufacturers.",
+"scene": "機器間の汎化性能について",
+"en": "We need to ensure the model generalizes across different device manufacturers and imaging protocols.",
+"jp": "異なる機器メーカーや撮影プロトコルにわたってモデルが汎化することを担保する必要があります。"
+},
+{
+"id": "xc79d0aa8",
+"category": "MTGでの頻出フレーズ",
+"phrase": "One risk is that the model may struggle with structurally deformed retinas.",
+"scene": "モデルの限界・リスクの説明",
+"en": "One risk is that the model may struggle with structurally deformed retinas where standard biomarker patterns are disrupted.",
+"jp": "一つのリスクは、標準的なバイオマーカーパターンが崩れた構造変形のある網膜に対して、モデルが苦戦する可能性があることです。"
+},
+{
+"id": "xf79e1eff",
+"category": "MTGでの頻出フレーズ",
+"phrase": "We're currently sourcing training data from clinical records and registries.",
+"scene": "学習データの収集方法を説明する",
+"en": "We're currently sourcing training data from clinical records at partner institutions and publicly available registry datasets.",
+"jp": "現在、提携医療機関の診療データおよび公開レジストリデータセットから学習データを収集しています。"
+}
+]
+</script>
+<!-- DATA:END -->
+
+<script>
+"use strict";
+//============ データ読み込み ============
+const EXCEL_PHRASES = (() => {
+  try { return JSON.parse(document.getElementById('phrase-data').textContent) || []; }
+  catch(e){ return []; }
+})();
+
+//============ 保存（localStorage） ============
+const LS = {
+  progress:'iet_progress',   // {id: 'done'|'failed'}
+  user:'iet_user_phrases',   // 手動追加フレーズ [{id,jp,en,scene,note,category}]
+  settings:'iet_settings',   // {goal, mode, hint}
+  today:'iet_today',         // {date, done}
+};
+function load(key, def){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+let progress = load(LS.progress, {});
+let userPhrases = load(LS.user, []);
+let settings = Object.assign({goal:20, mode:'review'}, load(LS.settings, {}));
+let today = load(LS.today, {date:'', done:0});
+
+// 日付が変わったら今日の達成数をリセット
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+if(today.date !== todayKey()){ today = {date:todayKey(), done:0}; save(LS.today, today); }
+
+//============ フレーズ統合（Excel + 手動追加） ============
+function allPhrases(){ return userPhrases.concat(EXCEL_PHRASES); }
+function statusOf(id){ return progress[id] || null; }
+
+//============ 出題プール ============
+function pool(){
+  const ph = allPhrases();
+  if(settings.mode==='all') return ph.slice();
+  if(settings.mode==='failed') return ph.filter(p=>statusOf(p.id)==='failed');
+  return ph.filter(p=>statusOf(p.id)!=='done'); // review = 未チェック+できなかった
+}
+
+//============ 画面状態 ============
+let screen = 'home';
+let practiceIdx = 0;
+let revealed = false;
+let listFilter = 'all';
+let listSearch = '';
+
+//============ ユーティリティ ============
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function counts(){
+  const ph=allPhrases(); let done=0,failed=0,unchecked=0;
+  ph.forEach(p=>{const s=statusOf(p.id); if(s==='done')done++; else if(s==='failed')failed++; else unchecked++;});
+  return {total:ph.length, done, failed, unchecked};
+}
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function flash(type){
+  const f=document.getElementById('flash');
+  f.textContent = type==='done'?'⭕':'✕';
+  f.style.color = type==='done'?'var(--done)':'var(--failed)';
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+}
+
+//============ アクション ============
+function go(s){ screen=s; revealed=false; render(); }
+function mark(status){
+  const p=pool(); if(!p.length) return;
+  const idx=practiceIdx % p.length;
+  const cur=p[idx];
+  progress[cur.id]=status; save(LS.progress, progress);
+  today.done=Math.min(settings.goal||999, today.done+1); save(LS.today, today);
+  flash(status);
+  // 'done' は出題プールから抜けるので idx 据え置き、'failed' は残るので次へ進める
+  const np=pool();
+  if(np.length===0){ practiceIdx=0; }
+  else if(status==='done'){ practiceIdx = idx % np.length; }
+  else { practiceIdx = (idx+1) % np.length; }
+  revealed=false; render();
+}
+function resetProgress(){
+  if(!confirm('学習の進み具合（できた／できなかった）をすべてリセットします。よろしいですか？')) return;
+  progress={}; save(LS.progress, progress);
+  today={date:todayKey(), done:0}; save(LS.today, today);
+  toast('進捗をリセットしました'); render();
+}
+function deleteUserPhrase(id){
+  userPhrases=userPhrases.filter(p=>p.id!==id); save(LS.user, userPhrases);
+  delete progress[id]; save(LS.progress, progress);
+  toast('削除しました'); render();
+}
+
+//============ 画面描画 ============
+function render(){
+  const el=document.getElementById('screen');
+  if(screen==='home') el.innerHTML=viewHome();
+  else if(screen==='practice') el.innerHTML=viewPractice();
+  else if(screen==='list') el.innerHTML=viewList();
+  else if(screen==='settings') el.innerHTML=viewSettings();
+  renderNav();
+  bind();
+  el.scrollTop=0;
+}
+
+function viewHome(){
+  const c=counts();
+  const goal=settings.goal||0;
+  const pct=goal?Math.min(100,Math.round(today.done/goal*100)):0;
+  return `
+    <h1 class="brand">瞬間英作文<span>トレーナー</span></h1>
+    <p class="muted" style="font-size:13px;margin:6px 0 18px;">日本語を見て、英語で言ってみよう</p>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="row" style="justify-content:space-between;align-items:baseline;">
+        <div style="font-weight:700;font-size:14px;">今日の目標</div>
+        <div style="font-weight:900;font-size:15px;"><span style="color:var(--blue);">${today.done}</span> / ${goal} 問</div>
+      </div>
+      <div class="bar" style="margin-top:10px;"><i style="width:${pct}%"></i></div>
+      <div class="muted" style="font-size:11.5px;margin-top:8px;">${today.done>=goal&&goal>0?'🎉 今日の目標を達成しました！':'設定タブで目標数を変えられます'}</div>
+    </div>
+
+    <div class="row" style="gap:9px;margin-bottom:16px;">
+      ${statCard('未チェック',c.unchecked,'var(--uncheck)')}
+      ${statCard('できた',c.done,'var(--done)')}
+      ${statCard('できなかった',c.failed,'var(--failed)')}
+    </div>
+
+    <button class="btn btn-primary" data-go="practice">練習をはじめる（${pool().length}問）</button>
+    <button class="btn btn-ghost" data-go="list" style="margin-top:10px;">フレーズ一覧を見る（${c.total}問）</button>
+  `;
+}
+function statCard(label,n,color){
+  return `<div class="card" style="flex:1;text-align:center;padding:13px 6px;">
+    <div style="font-weight:900;font-size:22px;color:${color};">${n}</div>
+    <div class="muted" style="font-size:10.5px;margin-top:2px;">${label}</div></div>`;
+}
+
+function viewPractice(){
+  const p=pool();
+  const modeNote = settings.mode==='all'?'すべて出題中':settings.mode==='failed'?'できなかった問題のみ':'未チェック・できなかった問題を出題中';
+  if(!p.length){
+    return `<h1 class="brand">練習</h1>
+      <div class="card" style="margin-top:40px;text-align:center;padding:40px 20px;">
+        <div style="font-size:40px;">🎉</div>
+        <div style="font-weight:700;margin-top:10px;">出題できる問題がありません</div>
+        <div class="muted" style="font-size:12.5px;margin-top:6px;">設定タブで出題範囲を変えるか、進捗をリセットしてください。</div>
+      </div>`;
+  }
+  const cur=p[practiceIdx % p.length];
+  const answer = revealed ? `
+    <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:16px;">
+      <div style="font-weight:900;font-size:19px;line-height:1.5;">${esc(cur.en)}</div>
+      ${cur.scene?`<div class="muted" style="font-size:12.5px;margin-top:10px;">💡 意味/利用シーン<br>${esc(cur.scene)}</div>`:''}
+    </div>` : '';
+  return `
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <h1 class="brand" style="font-size:20px;">練習</h1>
+      <span class="pill" style="background:#EEF1FE;color:var(--blue);">${cur.category||'　'}</span>
+    </div>
+    <div class="muted" style="font-size:11.5px;margin:6px 0 14px;">${modeNote}・残り ${p.length} 問</div>
+
+    <div class="card" style="min-height:200px;display:flex;flex-direction:column;justify-content:center;">
+      <div style="font-size:21px;font-weight:700;line-height:1.6;">${esc(cur.jp)}</div>
+      ${answer}
+    </div>
+
+    ${revealed
+      ? `<div class="row" style="margin-top:14px;">
+           <button class="btn btn-failed" data-mark="failed" style="flex:1;">✕ できなかった</button>
+           <button class="btn btn-done" data-mark="done" style="flex:1;">⭕ できた</button>
+         </div>`
+      : `<button class="btn btn-primary" id="revealBtn" style="margin-top:14px;">答えを見る</button>`}
+  `;
+}
+
+function viewList(){
+  const q=listSearch.trim().toLowerCase();
+  const STAT={done:['var(--done)','できた'],failed:['var(--failed)','できなかった'],null:['var(--uncheck)','未チェック']};
+  let ph=allPhrases().filter(p=>{
+    const s=statusOf(p.id);
+    if(listFilter==='done'&&s!=='done')return false;
+    if(listFilter==='failed'&&s!=='failed')return false;
+    if(listFilter==='unchecked'&&s!==null)return false;
+    if(q&&!(p.jp.toLowerCase().includes(q)||p.en.toLowerCase().includes(q)))return false;
+    return true;
+  });
+  // カテゴリ別にまとめる
+  const groups={}; ph.forEach(p=>{(groups[p.category||'その他']=groups[p.category||'その他']||[]).push(p);});
+  let body='';
+  if(!ph.length){
+    body=`<div style="text-align:center;padding:50px 20px;color:var(--sub);"><div style="font-size:34px;">🔍</div><div style="font-size:14px;margin-top:8px;">該当するフレーズがありません</div></div>`;
+  } else {
+    for(const cat of Object.keys(groups)){
+      body+=`<div class="cat-head">${esc(cat)}（${groups[cat].length}）</div>`;
+      body+=groups[cat].map(p=>{
+        const s=statusOf(p.id); const st=STAT[String(s)];
+        const isUser=p.id.startsWith('u_');
+        return `<details class="listitem">
+          <summary class="row" style="align-items:center;gap:10px;">
+            <span class="dot" style="background:${st[0]};"></span>
+            <span style="flex:1;font-size:14px;font-weight:700;">${esc(p.jp)}</span>
+            <span class="muted" style="font-size:18px;">›</span>
+          </summary>
+          <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--line);">
+            <div style="font-weight:700;font-size:15px;">${esc(p.en)}</div>
+            ${p.scene?`<div class="muted" style="font-size:12px;margin-top:8px;">💡 ${esc(p.scene)}</div>`:''}
+            <div class="muted" style="font-size:11px;margin-top:8px;">状態: ${st[1]}</div>
+            ${isUser?`<button class="btn btn-ghost" data-del="${p.id}" style="margin-top:10px;color:#D6584F;border-color:#F0D2D2;font-size:13px;padding:9px;">この追加フレーズを削除</button>`:''}
+          </div>
+        </details>`;
+      }).join('');
+    }
+  }
+  const chip=(v,l)=>`<button class="chip ${listFilter===v?'on':''}" data-filter="${v}">${l}</button>`;
+  return `
+    <h1 class="brand" style="font-size:20px;">フレーズ一覧</h1>
+    <input id="searchBox" placeholder="日本語・英語で検索" value="${esc(listSearch)}" style="margin:12px 0 12px;">
+    <div class="row" style="gap:7px;flex-wrap:wrap;margin-bottom:6px;">
+      ${chip('all','すべて')}${chip('unchecked','未チェック')}${chip('done','できた')}${chip('failed','できなかった')}
+    </div>
+    <div style="margin-top:6px;">${body}</div>
+  `;
+}
+
+function viewSettings(){
+  const modeOpt=(v,l)=>`<option value="${v}" ${settings.mode===v?'selected':''}>${l}</option>`;
+  return `
+    <h1 class="brand" style="font-size:20px;">設定</h1>
+
+    <div class="card" style="margin-top:14px;">
+      <div style="font-weight:700;font-size:15px;">1日の目標</div>
+      <label class="fld">1日に解く目標の問題数</label>
+      <input id="goalInput" type="number" min="1" max="999" inputmode="numeric" value="${settings.goal}">
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div style="font-weight:700;font-size:15px;">練習のしかた</div>
+      <label class="fld">出題範囲</label>
+      <select id="modeSelect">
+        ${modeOpt('review','復習（未チェック＋できなかった）')}
+        ${modeOpt('failed','できなかった問題のみ')}
+        ${modeOpt('all','すべて')}
+      </select>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div style="font-weight:700;font-size:15px;">データ</div>
+      <button class="btn btn-ghost" id="resetBtn" style="margin-top:12px;color:#D6584F;border-color:#F0D2D2;">学習の進捗をリセット</button>
+    </div>
+    <div style="height:10px;"></div>
+  `;
+}
+
+//============ ナビ ============
+function renderNav(){
+  const items=[
+    ['home','ホーム','M3 10.5 L12 3.2 L21 10.5 M5.2 9.4 V20 H18.8 V9.4'],
+    ['practice','練習','CIRCLE'],
+    ['list','一覧','M4 6h16 M4 12h16 M4 18h10'],
+    ['settings','設定','GEAR'],
+  ];
+  document.getElementById('nav').innerHTML=items.map(([k,label,path])=>{
+    let svg;
+    if(path==='CIRCLE') svg='<circle cx="12" cy="12" r="8.2"></circle><circle cx="12" cy="12" r="3.6"></circle>';
+    else if(path==='GEAR') svg='<circle cx="12" cy="12" r="3.2"></circle><path d="M12 2.5v3 M12 18.5v3 M2.5 12h3 M18.5 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M7 17l-2 2"></path>';
+    else svg='<path d="'+path+'"></path>';
+    return `<button class="${screen===k?'active':''}" data-go="${k}">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>
+      <span>${label}</span></button>`;
+  }).join('');
+}
+
+//============ イベント結合 ============
+function bind(){
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+  document.querySelectorAll('[data-mark]').forEach(b=>b.onclick=()=>mark(b.dataset.mark));
+  const rv=document.getElementById('revealBtn'); if(rv) rv.onclick=()=>{revealed=true;render();};
+  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{listFilter=b.dataset.filter;render();});
+  const sb=document.getElementById('searchBox'); if(sb) sb.oninput=()=>{listSearch=sb.value;
+    // 入力位置を保つため部分更新
+    const pos=sb.selectionStart; render(); const nb=document.getElementById('searchBox'); if(nb){nb.focus();nb.setSelectionRange(pos,pos);} };
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ if(confirm('この追加フレーズを削除しますか？')) deleteUserPhrase(b.dataset.del); });
+
+  const gi=document.getElementById('goalInput'); if(gi) gi.onchange=()=>{
+    let v=parseInt(gi.value,10); if(isNaN(v)||v<1)v=1; if(v>999)v=999;
+    settings.goal=v; save(LS.settings,settings); toast('目標を '+v+' 問にしました');
+  };
+  const ms=document.getElementById('modeSelect'); if(ms) ms.onchange=()=>{settings.mode=ms.value;save(LS.settings,settings);practiceIdx=0;toast('出題範囲を変更しました');};
+  const rb=document.getElementById('resetBtn'); if(rb) rb.onclick=resetProgress;
+}
+
+render();
+</script>
+</body>
+</html>
